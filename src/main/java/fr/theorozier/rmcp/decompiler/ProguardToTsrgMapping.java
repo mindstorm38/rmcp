@@ -1,9 +1,10 @@
 package fr.theorozier.rmcp.decompiler;
 
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ProguardToTsrgMapping {
 	
@@ -21,14 +22,140 @@ public class ProguardToTsrgMapping {
 		PRIMITIVES_REMAP.put("void", 'V');
 	}
 	
-	private static String remapPath(String path) {
-		Character prim = PRIMITIVES_REMAP.get(path);
-		return prim == null ? ("L" + String.join("/", path.split("\\."))) : prim.toString();
+	private static Character remapPrimitive(String raw) {
+		return PRIMITIVES_REMAP.get(raw);
 	}
 	
-	public static void convert(InputStream in, OutputStream out) {
+	private static String remapPath(String path) {
+		return String.join("/", path.split("\\."));
+	}
 	
+	private static String remapType(String type, Map<String, String> typesMapping) {
+		
+		Character primitive = remapPrimitive(type);
+		
+		if (primitive != null) {
+			return primitive.toString();
+		} else {
+			String tmp = remapPath(type);
+			return "L" + typesMapping.getOrDefault(tmp, tmp) + ";";
+		}
+		
+	}
 	
+	private static String remapTypeWithArray(String type, Map<String, String> typesMapping) {
+		
+		int idx = type.indexOf('[');
+		int dim = (type.length() - idx) / 2;
+		type = remapType(type.substring(0, idx), typesMapping);
+		
+		if (dim == 0) {
+			return type;
+		}
+		
+		StringBuilder builder = new StringBuilder(type);
+		
+		if (builder.charAt(builder.length() - 1) != ';') {
+			builder.append(';');
+		}
+		
+		while (--dim >= 0) {
+			builder.insert(0, '[');
+		}
+		
+		return builder.toString();
+		
+	}
+	
+	public static void convert(InputStream in, OutputStream out) throws IOException {
+		
+		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
+		
+		Map<String, String> typesMapping = new HashMap<>();
+		
+		String line;
+		String[] split;
+		String deobf, obf;
+		String type, name, args, tmp;
+		int i, j;
+		
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+			while ((line = reader.readLine()) != null) {
+				if (!line.startsWith("#") && !line.startsWith("    ")) {
+					split = line.split(" -> ");
+					deobf = split[0];
+					obf = split[1];
+					obf = obf.substring(0, obf.length() - 1);
+					typesMapping.put(remapPath(deobf), obf);
+				}
+			}
+		}
+		
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+			while ((line = reader.readLine()) != null) {
+				
+				if (line.startsWith("#")) {
+					continue;
+				}
+				
+				split = line.split(" -> ");
+				deobf = split[0];
+				obf = split[1];
+				
+				if (line.startsWith("   ")) {
+					
+					deobf = deobf.trim();
+					obf = obf.trim();
+					
+					split = deobf.split(" ");
+					type = split[0];
+					name = split[1];
+					
+					if ((i = type.lastIndexOf(':')) != -1) {
+						type = type.substring(i + 1);
+					}
+					
+					i = name.indexOf('(');
+					j = name.indexOf(')');
+					
+					writer.write('\t');
+					writer.write(obf);
+					
+					if (i != -1 && j != -1) {
+						
+						args = name.substring(i + 1, j);
+						name = name.substring(0, i);
+						type = remapTypeWithArray(type, typesMapping);
+						
+						if (!args.isEmpty()) {
+							args = Arrays.stream(args.split(","))
+									.map(arg -> remapTypeWithArray(arg, typesMapping))
+									.collect(Collectors.joining());
+						}
+						
+						writer.write(" (");
+						writer.write(args);
+						writer.write(')');
+						writer.write(type);
+						
+					}
+					
+					writer.write(' ');
+					writer.write(name);
+					
+				} else {
+					
+					obf = obf.substring(0, obf.length() - 1);
+					writer.write(remapPath(obf));
+					writer.write(' ');
+					writer.write(remapPath(deobf));
+					
+				}
+				
+				writer.write('\n');
+				
+			}
+		}
 	
 	}
 	
