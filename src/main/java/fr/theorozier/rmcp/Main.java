@@ -18,7 +18,6 @@ import fr.theorozier.rmcp.util.Utils;
 
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -149,8 +148,8 @@ public class Main {
 		if (!downloadIfNotExists(jarPath, jarUrl, "jar")) return false;
 		if (!downloadIfNotExists(mappingsPath, mappingsUrl, "mappings")) return false;
 		
-		settings.put(Setting.VERSION_JAR_PATH, jarPath);
-		settings.put(Setting.VERSION_MAPPINGS_PATH, mappingsPath);
+		settings.put(Setting.SIDE_JAR_PATH, jarPath);
+		settings.put(Setting.SIDE_MAPPINGS_PATH, mappingsPath);
 		
 		return true;
 		
@@ -210,8 +209,9 @@ public class Main {
 		VERSION_MANIFEST,
 		VERSION_PATH,
 		SIDE,
-		VERSION_JAR_PATH,
-		VERSION_MAPPINGS_PATH,
+		SIDE_JAR_PATH,
+		SIDE_MAPPINGS_PATH,
+		SIDE_TSRG_MAPPINGS_PATH,
 		PROJECT,
 		PROJECT_PATH
 	}
