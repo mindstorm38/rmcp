@@ -16,6 +16,7 @@ import fr.theorozier.rmcp.mcapi.VersionManifest;
 import fr.theorozier.rmcp.util.ImprovedMap;
 import fr.theorozier.rmcp.util.JsonException;
 import fr.theorozier.rmcp.util.Utils;
+import fr.theorozier.rmcp.util.lib.Lib;
 
 import java.io.IOException;
 import java.net.URL;
@@ -88,13 +89,6 @@ public class Main {
 		String version = settings.getCast(Setting.VERSION);
 		Path versionPath = Paths.get("versions", version);
 		
-		try {
-			Files.createDirectories(versionPath);
-		} catch (IOException e) {
-			System.out.println("Failed to create directory '" + versionPath + "'.");
-			return false;
-		}
-		
 		Path versionManifestPath = versionPath.resolve("manifest.json");
 		URL versionManifestUrl;
 		boolean mustCache = false;
@@ -112,6 +106,13 @@ public class Main {
 			System.out.println("Invalid version '" + version + "'.");
 			return false;
 		} else {
+			
+			try {
+				Files.createDirectories(versionPath);
+			} catch (IOException e) {
+				System.out.println("Failed to create directory '" + versionPath + "'.");
+				return false;
+			}
 			
 			try {
 				
@@ -151,10 +152,11 @@ public class Main {
 		
 		Path jarPath = versionPath.resolve(side.id() + ".jar");
 		Path mappingsPath = versionPath.resolve(side.id() + ".map");
-		Path tsrgMappingsPath = versionPath.resolve(side.id() + ".tsrg");
 		
 		if (!downloadIfNotExists(jarPath, jarUrl, "jar")) return false;
 		if (!downloadIfNotExists(mappingsPath, mappingsUrl, "mappings")) return false;
+		
+		Path tsrgMappingsPath = versionPath.resolve(side.id() + ".tsrg");
 		
 		if (!Files.isRegularFile(tsrgMappingsPath)) {
 			
@@ -168,9 +170,26 @@ public class Main {
 			
 		}
 		
+		Path remappedJarPath = versionPath.resolve(side.id() + ".remap.jar");
+		
+		if (!Files.isRegularFile(remappedJarPath)) {
+			
+			System.out.println();
+			System.out.println("==== REMAPPING USING SPECIAL SOURCE ====");
+			long time = Lib.SPECIAL_SOURCE.callLibMainMethod(
+					"--in-jar", jarPath.toAbsolutePath().toString(),
+					"--out-jar", remappedJarPath.toAbsolutePath().toString(),
+					"--srg-in", tsrgMappingsPath.toAbsolutePath().toString(),
+					"--kill-lvt"
+			);
+			System.out.printf("Done remapping in '%s' in %.1fs\n", remappedJarPath.toString(), (time / 1000.0));
+			
+		}
+		
 		settings.put(Setting.SIDE_JAR_PATH, jarPath);
 		settings.put(Setting.SIDE_MAPPINGS_PATH, mappingsPath);
 		settings.put(Setting.SIDE_TSRG_MAPPINGS_PATH, tsrgMappingsPath);
+		settings.put(Setting.SIDE_REMAPPED_JAR_PATH, remappedJarPath);
 		
 		return true;
 		
@@ -239,6 +258,7 @@ public class Main {
 		SIDE_JAR_PATH,
 		SIDE_MAPPINGS_PATH,
 		SIDE_TSRG_MAPPINGS_PATH,
+		SIDE_REMAPPED_JAR_PATH,
 		PROJECT,
 		PROJECT_PATH
 	}
