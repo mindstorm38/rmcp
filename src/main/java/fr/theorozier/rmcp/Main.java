@@ -8,6 +8,7 @@ import fr.theorozier.rmcp.chain.PrintAction;
 import fr.theorozier.rmcp.chain.custom.GameSideInputAction;
 import fr.theorozier.rmcp.chain.custom.VersionInputAction;
 import fr.theorozier.rmcp.decompiler.CfrDecompiler;
+import fr.theorozier.rmcp.decompiler.Decompiler;
 import fr.theorozier.rmcp.decompiler.FernFlowerDecompiler;
 import fr.theorozier.rmcp.decompiler.ProguardToTsrgMapping;
 import fr.theorozier.rmcp.mcapi.GameSide;
@@ -24,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.function.Supplier;
 
 public class Main {
 	
@@ -49,6 +51,7 @@ public class Main {
 				.append(() -> validateSide(settings))
 				.append(new StringInputAction("Enter a suffix for your project directory", settings.putRef(Setting.PROJECT), false))
 				.append(() -> validateProject(settings))
+				.append(() -> decompile(settings))
 				.run();
 	
 	}
@@ -246,6 +249,37 @@ public class Main {
 			
 		}
 	
+	}
+	
+	private static boolean decompile(ImprovedMap<Setting, Object> settings) {
+		
+		Supplier<Decompiler> decompilerSupplier = settings.getCast(Setting.DECOMPILER);
+		Decompiler decompiler = decompilerSupplier.get();
+		
+		Path remappedJarPath = settings.getCast(Setting.SIDE_REMAPPED_JAR_PATH);
+		Path projectPath = settings.getCast(Setting.PROJECT_PATH);
+		
+		Path projectSrc = projectPath.resolve("src");
+		
+		if (!Files.isDirectory(projectSrc)) {
+			
+			try {
+				Files.createDirectories(projectSrc);
+			} catch (IOException e) {
+				System.out.println("Failed to create project src directory.");
+				e.printStackTrace();
+				return false;
+			}
+			
+		}
+		
+		System.out.println();
+		System.out.println("==== DECOMPILING USING " + decompiler.name() + " ====");
+		long time = decompiler.decompile(remappedJarPath, projectSrc);
+		System.out.printf("Decompiled in '%s' in %.1fs\n", projectSrc.toString(), (time / 1000.0));
+		
+		return true;
+		
 	}
 	
 	private enum Setting {

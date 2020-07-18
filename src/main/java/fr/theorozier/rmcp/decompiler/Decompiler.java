@@ -1,7 +1,8 @@
 package fr.theorozier.rmcp.decompiler;
 
-public abstract class Decompiler {
+import java.nio.file.Path;
 
-
-
+public interface Decompiler {
+	String name();
+	long decompile(Path from, Path to);
 }
