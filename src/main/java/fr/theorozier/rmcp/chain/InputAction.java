@@ -1,13 +1,11 @@
 package fr.theorozier.rmcp.chain;
 
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Scanner;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.function.Consumer;
 
 public class InputAction implements Action {
-	
-	private static Scanner scanner;
 	
 	protected final String message;
 	private final Consumer<Object> setter;
@@ -32,16 +30,16 @@ public class InputAction implements Action {
 	@Override
 	public Object run(Object last) {
 		
-		if (scanner == null) {
-			scanner = new Scanner(System.in);
-		}
+		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 		
-		try {
+		while (true) {
 			
-			for (;;) {
+			try {
 				
 				System.out.println(this.buildMessage());
-				Object value = this.parseValue(scanner.nextLine());
+				
+				String line = reader.readLine();
+				Object value = this.parseValue(line);
 				
 				if (this.retryIfNull() && value == null) {
 					System.out.print("Retry. ");
@@ -51,16 +49,12 @@ public class InputAction implements Action {
 				this.setter.accept(value);
 				return value;
 				
+			} catch (IOException e) {
+				return null;
 			}
 			
-		} catch (NoSuchElementException e) {
-			return null;
 		}
 		
-	}
-	
-	public static Consumer<Object> buildMapSetter(Map<Object, Object> map, Object key) {
-		return (val) -> map.put(key, val);
 	}
 	
 }

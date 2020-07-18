@@ -3,14 +3,14 @@ package fr.theorozier.rmcp.chain.custom;
 import fr.theorozier.rmcp.chain.InputAction;
 import fr.theorozier.rmcp.decompiler.Decompiler;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class DecompilerInputAction extends InputAction {
 	
-	private final Map<String, Supplier<Decompiler>> decompilerSuppliers = new HashMap<>();
+	private final Map<String, Supplier<Decompiler>> decompilerSuppliers = new LinkedHashMap<>();
 	
 	public DecompilerInputAction(String message, Consumer<Object> setter) {
 		super(message, setter);
@@ -39,8 +39,8 @@ public class DecompilerInputAction extends InputAction {
 					first = false;
 				} else {
 					builder.append('/');
+					builder.append(key);
 				}
-				builder.append(key);
 			}
 			
 			builder.append("]: ");
@@ -55,7 +55,7 @@ public class DecompilerInputAction extends InputAction {
 		if (this.decompilerSuppliers.isEmpty()) {
 			return null;
 		} else {
-			return this.decompilerSuppliers.get(line.toLowerCase());
+			return line.isEmpty() ? this.decompilerSuppliers.values().iterator().next() : this.decompilerSuppliers.get(line.toLowerCase());
 		}
 	}
 	

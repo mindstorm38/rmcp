@@ -1,6 +1,8 @@
 package fr.theorozier.rmcp.decompiler;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,6 +48,7 @@ public class ProguardToTsrgMapping {
 	private static String remapTypeWithArray(String type, Map<String, String> typesMapping) {
 		
 		int idx = type.indexOf('[');
+		if (idx == -1) idx = type.length();
 		int dim = (type.length() - idx) / 2;
 		type = remapType(type.substring(0, idx), typesMapping);
 		
@@ -55,7 +58,7 @@ public class ProguardToTsrgMapping {
 		
 		StringBuilder builder = new StringBuilder(type);
 		
-		if (builder.charAt(builder.length() - 1) != ';') {
+		if (!type.endsWith(";")) {
 			builder.append(';');
 		}
 		
@@ -67,9 +70,9 @@ public class ProguardToTsrgMapping {
 		
 	}
 	
-	public static void convert(InputStream in, OutputStream out) throws IOException {
+	public static void convert(Path in, Path out) throws IOException {
 		
-		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
+		BufferedWriter writer = Files.newBufferedWriter(out);
 		
 		Map<String, String> typesMapping = new HashMap<>();
 		
@@ -79,7 +82,7 @@ public class ProguardToTsrgMapping {
 		String type, name, args, tmp;
 		int i, j;
 		
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+		try (BufferedReader reader = Files.newBufferedReader(in)) {
 			while ((line = reader.readLine()) != null) {
 				if (!line.startsWith("#") && !line.startsWith("    ")) {
 					split = line.split(" -> ");
@@ -91,7 +94,7 @@ public class ProguardToTsrgMapping {
 			}
 		}
 		
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+		try (BufferedReader reader = Files.newBufferedReader(in)) {
 			while ((line = reader.readLine()) != null) {
 				
 				if (line.startsWith("#")) {
@@ -156,6 +159,8 @@ public class ProguardToTsrgMapping {
 				
 			}
 		}
+		
+		writer.close();
 	
 	}
 	

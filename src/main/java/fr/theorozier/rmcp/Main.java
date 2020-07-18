@@ -9,6 +9,7 @@ import fr.theorozier.rmcp.chain.custom.GameSideInputAction;
 import fr.theorozier.rmcp.chain.custom.VersionInputAction;
 import fr.theorozier.rmcp.decompiler.CfrDecompiler;
 import fr.theorozier.rmcp.decompiler.FernFlowerDecompiler;
+import fr.theorozier.rmcp.decompiler.ProguardToTsrgMapping;
 import fr.theorozier.rmcp.mcapi.GameSide;
 import fr.theorozier.rmcp.mcapi.VersionListManifest;
 import fr.theorozier.rmcp.mcapi.VersionManifest;
@@ -31,7 +32,7 @@ public class Main {
 		
 		ImprovedMap<Setting, Object> settings = ImprovedMap.improve(new HashMap<>());
 		
-		ActionChain main = new ActionChain()
+		new ActionChain()
 				.append(new PrintAction("Reliable Minecraft Coder Pack [RMCP]"))
 				.append(new PrintAction("Using official Mojang mappings to decompile client or server jars."))
 				.append(new PrintAction("Default options are in uppercase, just enter."))
@@ -41,16 +42,14 @@ public class Main {
 						.decompiler("cfr", CfrDecompiler::new)
 						.decompiler("ff", FernFlowerDecompiler::new))
 				.append(() -> loadManifest(settings))
-				.append(new PrintAction("Please select a valid version (starting from 19w36a / 1.14.4).\nUse 'snapshot' or 'release' for latest snapshot or release."))
 				.append(new VersionInputAction("Version" , settings.putRef(Setting.VERSION), settings.getCastRef(Setting.VERSION_LIST_MANIFEST)))
 				.append(() -> validateVersion(settings))
 				.append(new GameSideInputAction("Select either client or server side", settings.putRef(Setting.SIDE)))
 				.append(() -> validateSide(settings))
 				.append(new StringInputAction("Enter a suffix for your project directory", settings.putRef(Setting.PROJECT), false))
-				.append(() -> validateProject(settings));
+				.append(() -> validateProject(settings))
+				.run();
 	
-		main.run();
-		
 	}
 	
 	private static boolean validateJavaVersion() {
@@ -88,6 +87,14 @@ public class Main {
 		
 		String version = settings.getCast(Setting.VERSION);
 		Path versionPath = Paths.get("versions", version);
+		
+		try {
+			Files.createDirectories(versionPath);
+		} catch (IOException e) {
+			System.out.println("Failed to create directory '" + versionPath + "'.");
+			return false;
+		}
+		
 		Path versionManifestPath = versionPath.resolve("manifest.json");
 		URL versionManifestUrl;
 		boolean mustCache = false;
@@ -110,7 +117,7 @@ public class Main {
 				
 				VersionManifest manifest = VersionManifest.loadManifest(versionManifestUrl);
 				
-				if (manifest.doSupportMappings()) {
+				if (!manifest.doSupportMappings()) {
 					System.out.println("This version is too old it do not support mappings, you can use MCP for that instead.");
 					return false;
 				}
@@ -144,12 +151,26 @@ public class Main {
 		
 		Path jarPath = versionPath.resolve(side.id() + ".jar");
 		Path mappingsPath = versionPath.resolve(side.id() + ".map");
+		Path tsrgMappingsPath = versionPath.resolve(side.id() + ".tsrg");
 		
 		if (!downloadIfNotExists(jarPath, jarUrl, "jar")) return false;
 		if (!downloadIfNotExists(mappingsPath, mappingsUrl, "mappings")) return false;
 		
+		if (!Files.isRegularFile(tsrgMappingsPath)) {
+			
+			try {
+				ProguardToTsrgMapping.convert(mappingsPath, tsrgMappingsPath);
+			} catch (IOException e) {
+				System.out.println("Failed to convert (proguard) mappings to TSRG mappings.");
+				e.printStackTrace();
+				return false;
+			}
+			
+		}
+		
 		settings.put(Setting.SIDE_JAR_PATH, jarPath);
 		settings.put(Setting.SIDE_MAPPINGS_PATH, mappingsPath);
+		settings.put(Setting.SIDE_TSRG_MAPPINGS_PATH, tsrgMappingsPath);
 		
 		return true;
 		
@@ -181,6 +202,12 @@ public class Main {
 			System.out.println("This project '" + project + "' already exists, can't continue.");
 			return false;
 		} else {
+			
+			try {
+				Files.createDirectories(projectPath);
+			} catch (IOException e) {
+				System.out.println("Failed to created directory '" + projectPath + "'.");
+			}
 			
 			String version = settings.getCast(Setting.VERSION);
 			GameSide side = settings.getCast(Setting.SIDE);
