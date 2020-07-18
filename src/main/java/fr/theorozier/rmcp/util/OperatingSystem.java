@@ -35,7 +35,7 @@ public enum OperatingSystem {
 	}
 	
 	public static boolean is(OperatingSystem tested) {
-		return os == tested;
+		return get() == tested;
 	}
 	
 	public static boolean isWindows() {

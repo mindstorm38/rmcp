@@ -132,6 +132,12 @@ public class Main {
 				
 				System.out.println("Selected version: " + version);
 				
+				System.out.println("Libs :");
+				manifest.getLibraries().forEach(lib -> {
+					System.out.printf("- %s (%.2fKo) (%s)\n", lib.getPath(), (lib.getSize() / 1000.0), lib.getNatives());
+				});
+				System.out.printf("Libs total size: %.3fMo\n", manifest.getLibrariesTotalSize() / 1000000.0);
+				
 				settings.put(Setting.VERSION_MANIFEST, manifest);
 				settings.put(Setting.VERSION_PATH, versionPath);
 				return true;
