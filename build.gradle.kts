@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "fr.theorozier"
-version = "1.0-SNAPSHOT"
+version = "1.0.1"
 
 repositories {
     mavenCentral()
@@ -15,4 +15,10 @@ dependencies {
 
 configure<JavaPluginConvention> {
     sourceCompatibility = JavaVersion.VERSION_1_8
+}
+
+tasks.named<Jar>("jar") {
+    manifest {
+        attributes(mapOf("Main-Class" to "fr.theorozier.rmcp.Main"))
+    }
 }
