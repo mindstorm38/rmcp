@@ -12,9 +12,9 @@ import java.util.jar.Manifest;
 
 public enum Lib {
 	
-	CFR ("cfr-0.146.jar"),
-	FERN_FLOWER ("fernflower.jar"),
-	SPECIAL_SOURCE ("SpecialSource-1.8.6.jar");
+	CFR ("cfr-0.146"),
+	FERN_FLOWER ("fernflower"),
+	SPECIAL_SOURCE ("SpecialSource-1.8.6");
 	
 	private final String lib;
 	

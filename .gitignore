@@ -1,8 +1,8 @@
-.idea
-.gradle
-build
+/.idea
+/.gradle
+/build
 
-test
-projects
-versions
-lib
+/test/
+/projects/
+/versions/
+/lib/

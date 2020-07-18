@@ -130,6 +130,8 @@ public class Main {
 					VersionManifest.writeManifest(manifest, versionManifestPath);
 				}
 				
+				System.out.println("Selected version: " + version);
+				
 				settings.put(Setting.VERSION_MANIFEST, manifest);
 				settings.put(Setting.VERSION_PATH, versionPath);
 				return true;

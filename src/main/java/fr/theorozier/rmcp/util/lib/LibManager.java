@@ -8,10 +8,13 @@ import java.nio.file.Paths;
 
 public class LibManager {
 	
+	private static final String JAR_RES_EXT = ".jar.noshade"; // To avoid shadowing of embed jars from gradle shadow plugin
+	private static final String JAR_LIB_EXT = ".jar";
+	
 	private static Path librariesPath = null;
 	
 	public static InputStream getLibStream(String lib) {
-		return LibManager.class.getResourceAsStream("/lib/" + lib);
+		return LibManager.class.getResourceAsStream("/lib/" + lib + JAR_RES_EXT);
 	}
 	
 	public static Path getLibrariesPath() {
@@ -34,7 +37,7 @@ public class LibManager {
 	
 	public static Path ensureLibExtracted(String lib) {
 		
-		Path path = getLibrariesPath().resolve(lib);
+		Path path = getLibrariesPath().resolve(lib + JAR_LIB_EXT);
 		
 		if (!Files.isRegularFile(path)) {
 			
