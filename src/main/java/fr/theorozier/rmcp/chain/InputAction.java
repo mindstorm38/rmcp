@@ -36,7 +36,7 @@ public class InputAction implements Action {
 			
 			try {
 				
-				System.out.println(this.buildMessage());
+				System.out.print(this.buildMessage());
 				
 				String line = reader.readLine();
 				Object value = this.parseValue(line);
