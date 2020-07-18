@@ -58,10 +58,6 @@ public class ProguardToTsrgMapping {
 		
 		StringBuilder builder = new StringBuilder(type);
 		
-		if (!type.endsWith(";")) {
-			builder.append(';');
-		}
-		
 		while (--dim >= 0) {
 			builder.insert(0, '[');
 		}
@@ -89,7 +85,7 @@ public class ProguardToTsrgMapping {
 					deobf = split[0];
 					obf = split[1];
 					obf = obf.substring(0, obf.length() - 1);
-					typesMapping.put(remapPath(deobf), obf);
+					typesMapping.put(remapPath(deobf), remapPath(obf));
 				}
 			}
 		}
