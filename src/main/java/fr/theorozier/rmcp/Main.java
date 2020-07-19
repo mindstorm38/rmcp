@@ -1,10 +1,7 @@
 package fr.theorozier.rmcp;
 
-import fr.theorozier.rmcp.chain.ActionChain;
-import fr.theorozier.rmcp.chain.AssertAction;
-import fr.theorozier.rmcp.chain.StringInputAction;
+import fr.theorozier.rmcp.chain.*;
 import fr.theorozier.rmcp.chain.custom.DecompilerInputAction;
-import fr.theorozier.rmcp.chain.PrintAction;
 import fr.theorozier.rmcp.chain.custom.GameSideInputAction;
 import fr.theorozier.rmcp.chain.custom.VersionInputAction;
 import fr.theorozier.rmcp.decompiler.CfrDecompiler;
@@ -31,7 +28,6 @@ public class Main {
 	
 	public static final String DIR_VERSIONS = "versions";
 	public static final String DIR_PROJECTS = "projects";
-	public static final String DIR_LIBRARIES = "libraries";
 	public static final String DIR_MODULES = "modules";
 	
 	public static final String VERSION_DIR_LIBS = "libraries";
@@ -59,9 +55,14 @@ public class Main {
 				.append(() -> validateVersion(settings))
 				.append(new GameSideInputAction("Select either client or server side", settings.putRef(Setting.SIDE)))
 				.append(() -> validateSide(settings))
-				.append(new StringInputAction("Enter a suffix for your project directory", settings.putRef(Setting.PROJECT), false))
-				.append(() -> validateProject(settings))
-				.append(() -> decompile(settings))
+				.append(new YesNoInputAction("Setup a project", null, true))
+				.append(new SwitchAction()
+						.cas(true, new ActionChain()
+								.append(new StringInputAction("Enter a suffix for your project directory", settings.putRef(Setting.PROJECT), false))
+								.append(() -> validateProject(settings))
+								.append(() -> decompile(settings))
+						)
+				)
 				.run();
 	
 	}
@@ -301,7 +302,6 @@ public class Main {
 		Supplier<Decompiler> decompilerSupplier = settings.getCast(Setting.DECOMPILER);
 		Decompiler decompiler = decompilerSupplier.get();
 		
-		VersionManifest manifest = settings.getCast(Setting.VERSION_MANIFEST);
 		Path remappedJarPath = settings.getCast(Setting.SIDE_REMAPPED_JAR_PATH);
 		Path projectPath = settings.getCast(Setting.PROJECT_PATH);
 		
@@ -322,20 +322,6 @@ public class Main {
 		System.out.println("==== DECOMPILING USING " + decompiler.name() + " ====");
 		long time = decompiler.decompile(remappedJarPath, projectSrcPath);
 		System.out.printf("Decompiled in '%s' in %.1fs\n", projectSrcPath.toString(), (time / 1000.0));
-		
-		/*Path projectLibsPath = projectPath.resolve(PROJECT_DIR_LIB);
-		System.out.println("Downloading libraries ...");
-		for (VersionManifest.Library lib : manifest.getLibraries()) {
-			Path libPath = libsPath.resolve(lib.getPath());
-			try {
-				Files.createDirectories(libPath.getParent());
-				downloadIfNotExists(libPath, false, lib.getUrl());
-			} catch (IOException e) {
-				System.out.println("Failed to create directory for lib '" + libPath + "'.");
-				e.printStackTrace();
-			}
-		}
-		System.out.println("Libraries downloaded.");*/
 		
 		return true;
 		

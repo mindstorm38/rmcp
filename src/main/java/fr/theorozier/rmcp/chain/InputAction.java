@@ -46,7 +46,10 @@ public class InputAction implements Action {
 					continue;
 				}
 				
-				this.setter.accept(value);
+				if (this.setter != null) {
+					this.setter.accept(value);
+				}
+				
 				return value;
 				
 			} catch (IOException e) {
