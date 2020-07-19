@@ -207,6 +207,10 @@ public class VersionManifest {
 			return this.natives;
 		}
 		
+		public boolean hasNatives() {
+			return this.natives != null;
+		}
+		
 		public static Library fromJson(JsonObject json, OperatingSystem natives) throws MalformedURLException {
 			String path = json.get("path").getAsString();
 			return new Library(path.substring(path.lastIndexOf('/') + 1), new URL(json.get("url").getAsString()), json.get("size").getAsLong(), natives);

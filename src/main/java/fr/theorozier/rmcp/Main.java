@@ -16,6 +16,7 @@ import fr.theorozier.rmcp.util.JsonException;
 import fr.theorozier.rmcp.util.Utils;
 import fr.theorozier.rmcp.util.lib.Module;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -32,6 +33,7 @@ public class Main {
 	
 	public static final String VERSION_DIR_LIBS = "libraries";
 	public static final String VERSION_DIR_LIBS_NATIVES = "natives";
+	public static final String VERSION_FILE_JVM_ARGS = "jvm.args";
 	
 	public static final String PROJECT_DIR_SRC = "src";
 	
@@ -205,6 +207,7 @@ public class Main {
 			
 			Path versionLibsPath = versionPath.resolve(VERSION_DIR_LIBS);
 			Path versionNativesPath = versionLibsPath.resolve(VERSION_DIR_LIBS_NATIVES);
+			Path jvmArgsPath = versionPath.resolve(VERSION_FILE_JVM_ARGS);
 			
 			try {
 				Files.createDirectories(versionNativesPath);
@@ -215,9 +218,18 @@ public class Main {
 			}
 			
 			System.out.println("Downloading libraries ...");
+			StringBuilder classPathBuilder = new StringBuilder();
+			
 			for (VersionManifest.Library lib : manifest.getLibraries()) {
+				
 				Path libPath = versionLibsPath.resolve(lib.getFilename());
-				if (downloadIfNotExists(libPath, false, lib.getUrl()) && lib.getNatives() != null) {
+				
+				if (!lib.hasNatives()) {
+					classPathBuilder.append(libPath.toAbsolutePath().toString());
+					classPathBuilder.append(';');
+				}
+				
+				if (downloadIfNotExists(libPath, false, lib.getUrl()) && lib.hasNatives()) {
 					
 					try {
 						
@@ -233,9 +245,29 @@ public class Main {
 					}
 					
 				}
+				
 			}
+			
 			System.out.println("Libraries downloaded.");
 			
+			if (!Files.isRegularFile(jvmArgsPath)) {
+				
+				System.out.println("Writing JVM arguments for classpath and libraries path to '" + jvmArgsPath + "'.");
+				
+				try (BufferedWriter writer = Files.newBufferedWriter(jvmArgsPath)) {
+					writer.write("-classpath ");
+					writer.write(classPathBuilder.toString());
+					writer.write(" -Djava.library.path=");
+					writer.write(versionNativesPath.toAbsolutePath().toString());
+				} catch (IOException e) {
+					System.out.println("Failed to write JVM arguments file:");
+					e.printStackTrace();
+				}
+				
+			}
+			
+		} else if (side == GameSide.SERVER) {
+			System.out.println("Classpath and library path will be soon available for server projects.");
 		}
 		
 		settings.put(Setting.SIDE_JAR_PATH, jarPath);
