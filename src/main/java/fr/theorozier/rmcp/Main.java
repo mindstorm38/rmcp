@@ -17,7 +17,7 @@ import fr.theorozier.rmcp.mcapi.VersionManifest;
 import fr.theorozier.rmcp.util.ImprovedMap;
 import fr.theorozier.rmcp.util.JsonException;
 import fr.theorozier.rmcp.util.Utils;
-import fr.theorozier.rmcp.util.lib.Lib;
+import fr.theorozier.rmcp.util.lib.Module;
 
 import java.io.IOException;
 import java.net.URL;
@@ -29,7 +29,17 @@ import java.util.function.Supplier;
 
 public class Main {
 	
-	private static final int MINIMUM_JAVA_VERSION = 8;
+	public static final String DIR_VERSIONS = "versions";
+	public static final String DIR_PROJECTS = "projects";
+	public static final String DIR_LIBRARIES = "libraries";
+	public static final String DIR_MODULES = "modules";
+	
+	public static final String VERSION_DIR_LIBS = "libraries";
+	public static final String VERSION_DIR_LIBS_NATIVES = "natives";
+	
+	public static final String PROJECT_DIR_SRC = "src";
+	
+	public static final int MINIMUM_JAVA_VERSION = 8;
 	
 	public static void main(String[] args) {
 		
@@ -90,7 +100,7 @@ public class Main {
 	private static boolean validateVersion(ImprovedMap<Setting, Object> settings) {
 		
 		String version = settings.getCast(Setting.VERSION);
-		Path versionPath = Paths.get("versions", version);
+		Path versionPath = Paths.get(DIR_VERSIONS, version);
 		
 		Path versionManifestPath = versionPath.resolve("manifest.json");
 		URL versionManifestUrl;
@@ -132,12 +142,6 @@ public class Main {
 				
 				System.out.println("Selected version: " + version);
 				
-				System.out.println("Libs :");
-				manifest.getLibraries().forEach(lib -> {
-					System.out.printf("- %s (%.2fKo) (%s)\n", lib.getPath(), (lib.getSize() / 1000.0), lib.getNatives());
-				});
-				System.out.printf("Libs total size: %.3fMo\n", manifest.getLibrariesTotalSize() / 1000000.0);
-				
 				settings.put(Setting.VERSION_MANIFEST, manifest);
 				settings.put(Setting.VERSION_PATH, versionPath);
 				return true;
@@ -164,8 +168,8 @@ public class Main {
 		Path jarPath = versionPath.resolve(side.id() + ".jar");
 		Path mappingsPath = versionPath.resolve(side.id() + ".map");
 		
-		if (!downloadIfNotExists(jarPath, jarUrl, "jar")) return false;
-		if (!downloadIfNotExists(mappingsPath, mappingsUrl, "mappings")) return false;
+		if (!downloadIfNotExists(jarPath, true, jarUrl)) return false;
+		if (!downloadIfNotExists(mappingsPath, true, mappingsUrl)) return false;
 		
 		Path tsrgMappingsPath = versionPath.resolve(side.id() + ".tsrg");
 		
@@ -185,15 +189,51 @@ public class Main {
 		
 		if (!Files.isRegularFile(remappedJarPath)) {
 			
-			System.out.println();
 			System.out.println("==== REMAPPING USING SPECIAL SOURCE ====");
-			long time = Lib.SPECIAL_SOURCE.callLibMainMethod(
+			long time = Module.SPECIAL_SOURCE.callMainMethod(
 					"--in-jar", jarPath.toAbsolutePath().toString(),
 					"--out-jar", remappedJarPath.toAbsolutePath().toString(),
 					"--srg-in", tsrgMappingsPath.toAbsolutePath().toString(),
 					"--kill-lvt"
 			);
 			System.out.printf("Done remapping in '%s' in %.1fs\n", remappedJarPath.toString(), (time / 1000.0));
+			
+		}
+		
+		if (side == GameSide.CLIENT) {
+			
+			Path versionLibsPath = versionPath.resolve(VERSION_DIR_LIBS);
+			Path versionNativesPath = versionLibsPath.resolve(VERSION_DIR_LIBS_NATIVES);
+			
+			try {
+				Files.createDirectories(versionNativesPath);
+			} catch (IOException e) {
+				System.out.println("Failed to create directory for libs '" + versionNativesPath + "'.");
+				e.printStackTrace();
+				return false;
+			}
+			
+			System.out.println("Downloading libraries ...");
+			for (VersionManifest.Library lib : manifest.getLibraries()) {
+				Path libPath = versionLibsPath.resolve(lib.getFilename());
+				if (downloadIfNotExists(libPath, false, lib.getUrl()) && lib.getNatives() != null) {
+					
+					try {
+						
+						Utils.extractZipArchive(libPath, versionNativesPath, zipEntry -> {
+							return !zipEntry.getName().startsWith("META-INF/") &&
+									!zipEntry.getName().endsWith(".sha1") &&
+									!zipEntry.getName().endsWith(".git");
+						});
+						
+					} catch (IOException e) {
+						System.out.println("Failed to extract lib natives:");
+						e.printStackTrace();
+					}
+					
+				}
+			}
+			System.out.println("Libraries downloaded.");
 			
 		}
 		
@@ -206,27 +246,24 @@ public class Main {
 		
 	}
 	
-	private static boolean downloadIfNotExists(Path path, URL url, String element) {
-		if (Files.isRegularFile(path)) {
-			System.out.println("The " + element + " file already exists, delete this file if you want to download again.");
-			return true;
-		} else {
+	private static boolean downloadIfNotExists(Path path, boolean warnIfExists, URL url) {
+		return Utils.ifPathNotExists(path, warnIfExists, (p) -> {
 			try {
-				System.out.println("Downloading " + element + " file...");
+				System.out.println("Downloading " + url + " file...");
 				Files.copy(url.openStream(), path);
 				return true;
 			} catch (IOException e) {
-				System.out.println("Failed to download " + element + " file.");
+				System.out.println("Failed to download file.");
 				e.printStackTrace();
 				return false;
 			}
-		}
+		}, true);
 	}
 	
 	private static boolean validateProject(ImprovedMap<Setting, Object> settings) {
-	
+		
 		String project = settings.getCast(Setting.PROJECT);
-		Path projectPath = Paths.get("projects", project);
+		Path projectPath = Paths.get(DIR_PROJECTS, project);
 		
 		if (Files.isDirectory(projectPath)) {
 			System.out.println("This project '" + project + "' already exists, can't continue.");
@@ -264,15 +301,16 @@ public class Main {
 		Supplier<Decompiler> decompilerSupplier = settings.getCast(Setting.DECOMPILER);
 		Decompiler decompiler = decompilerSupplier.get();
 		
+		VersionManifest manifest = settings.getCast(Setting.VERSION_MANIFEST);
 		Path remappedJarPath = settings.getCast(Setting.SIDE_REMAPPED_JAR_PATH);
 		Path projectPath = settings.getCast(Setting.PROJECT_PATH);
 		
-		Path projectSrc = projectPath.resolve("src");
+		Path projectSrcPath = projectPath.resolve(PROJECT_DIR_SRC);
 		
-		if (!Files.isDirectory(projectSrc)) {
+		if (!Files.isDirectory(projectSrcPath)) {
 			
 			try {
-				Files.createDirectories(projectSrc);
+				Files.createDirectories(projectSrcPath);
 			} catch (IOException e) {
 				System.out.println("Failed to create project src directory.");
 				e.printStackTrace();
@@ -281,10 +319,23 @@ public class Main {
 			
 		}
 		
-		System.out.println();
 		System.out.println("==== DECOMPILING USING " + decompiler.name() + " ====");
-		long time = decompiler.decompile(remappedJarPath, projectSrc);
-		System.out.printf("Decompiled in '%s' in %.1fs\n", projectSrc.toString(), (time / 1000.0));
+		long time = decompiler.decompile(remappedJarPath, projectSrcPath);
+		System.out.printf("Decompiled in '%s' in %.1fs\n", projectSrcPath.toString(), (time / 1000.0));
+		
+		/*Path projectLibsPath = projectPath.resolve(PROJECT_DIR_LIB);
+		System.out.println("Downloading libraries ...");
+		for (VersionManifest.Library lib : manifest.getLibraries()) {
+			Path libPath = libsPath.resolve(lib.getPath());
+			try {
+				Files.createDirectories(libPath.getParent());
+				downloadIfNotExists(libPath, false, lib.getUrl());
+			} catch (IOException e) {
+				System.out.println("Failed to create directory for lib '" + libPath + "'.");
+				e.printStackTrace();
+			}
+		}
+		System.out.println("Libraries downloaded.");*/
 		
 		return true;
 		

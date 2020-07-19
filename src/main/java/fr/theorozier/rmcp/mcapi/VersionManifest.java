@@ -179,20 +179,20 @@ public class VersionManifest {
 	
 	public static class Library {
 		
-		private final String path;
+		private final String filename;
 		private final URL url;
 		private final long size;
 		private final OperatingSystem natives;
 		
-		public Library(String path, URL url, long size, OperatingSystem natives) {
-			this.path = path;
+		public Library(String filename, URL url, long size, OperatingSystem natives) {
+			this.filename = filename;
 			this.url = url;
 			this.size = size;
 			this.natives = natives;
 		}
 		
-		public String getPath() {
-			return this.path;
+		public String getFilename() {
+			return this.filename;
 		}
 		
 		public URL getUrl() {
@@ -208,7 +208,8 @@ public class VersionManifest {
 		}
 		
 		public static Library fromJson(JsonObject json, OperatingSystem natives) throws MalformedURLException {
-			return new Library(json.get("path").getAsString(), new URL(json.get("url").getAsString()), json.get("size").getAsLong(), natives);
+			String path = json.get("path").getAsString();
+			return new Library(path.substring(path.lastIndexOf('/') + 1), new URL(json.get("url").getAsString()), json.get("size").getAsLong(), natives);
 		}
 		
 	}

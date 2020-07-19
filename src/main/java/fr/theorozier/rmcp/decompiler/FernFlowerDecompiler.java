@@ -1,9 +1,7 @@
 package fr.theorozier.rmcp.decompiler;
 
-import fr.theorozier.rmcp.util.lib.Lib;
+import fr.theorozier.rmcp.util.lib.Module;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class FernFlowerDecompiler implements Decompiler {
@@ -15,7 +13,7 @@ public class FernFlowerDecompiler implements Decompiler {
 	
 	@Override
 	public long decompile(Path from, Path to) {
-		return Lib.FERN_FLOWER.callLibMainMethod(
+		return Module.FERN_FLOWER.callMainMethod(
 				"-hed=0",
 				"-hdc=0",
 				"-dgs=1",

@@ -16,6 +16,12 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public class Utils {
 
@@ -81,6 +87,36 @@ public class Utils {
 		} catch (MalformedURLException e) {
 			return null;
 		}
+	}
+	
+	public static <R> R ifPathNotExists(Path path, boolean warnIfExists, Function<Path, R> callback, R def) {
+		if (Files.exists(path)) {
+			if (warnIfExists) {
+				System.out.println("File '" + path + "' already exists, delete it manually to force refreshing.");
+			}
+			return def;
+		} else {
+			return callback.apply(path);
+		}
+	}
+	
+	public static void extractZipArchive(Path zipPath, Path destDirPath, Predicate<ZipEntry> filter) throws IOException {
+		
+		ZipInputStream zip = new ZipInputStream(Files.newInputStream(zipPath));
+		ZipEntry entry;
+		
+		while ((entry = zip.getNextEntry()) != null) {
+			if (filter.test(entry)) {
+				Path filePath = destDirPath.resolve(entry.getName());
+				if (!entry.isDirectory()) {
+					Files.createDirectories(filePath.getParent());
+					Files.copy(zip, filePath, StandardCopyOption.REPLACE_EXISTING);
+				}
+			}
+		}
+		
+		zip.close();
+		
 	}
 
 }

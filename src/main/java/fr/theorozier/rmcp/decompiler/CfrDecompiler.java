@@ -1,6 +1,6 @@
 package fr.theorozier.rmcp.decompiler;
 
-import fr.theorozier.rmcp.util.lib.Lib;
+import fr.theorozier.rmcp.util.lib.Module;
 
 import java.nio.file.Path;
 
@@ -14,7 +14,7 @@ public class CfrDecompiler implements Decompiler {
 	@Override
 	public long decompile(Path from, Path to) {
 		
-		long time = Lib.CFR.callLibMainMethod(
+		long time = Module.CFR.callMainMethod(
 				from.toAbsolutePath().toString(),
 				"--outputdir", to.toAbsolutePath().toString(),
 				"--caseinsensitivefs", "true",

@@ -10,7 +10,7 @@ import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.jar.Manifest;
 
-public enum Lib {
+public enum Module {
 	
 	CFR ("cfr-0.146"),
 	FERN_FLOWER ("fernflower"),
@@ -23,22 +23,22 @@ public enum Lib {
 	private Class<?> mainClass;
 	private Method mainMethod;
 	
-	Lib(String lib) {
+	Module(String lib) {
 		this.lib = lib;
 	}
 	
 	public Path ensureExtracted() {
-		return LibManager.ensureLibExtracted(this.lib);
+		return ModuleManager.ensureModuleExtracted(this.lib);
 	}
 	
-	public ClassLoader getLibClassLoader() {
+	public ClassLoader getClassLoader() {
 		
 		if (this.classLoader == null) {
 			
 			try {
 				
 				this.libUrl = this.ensureExtracted().toUri().toURL();
-				this.classLoader = new URLClassLoader(new URL[] {this.libUrl}, Lib.class.getClassLoader());
+				this.classLoader = new URLClassLoader(new URL[] {this.libUrl}, Module.class.getClassLoader());
 				
 			} catch (MalformedURLException e) {
 				throw new IllegalStateException("Failed to get lib URL for " + this + ".", e);
@@ -50,11 +50,11 @@ public enum Lib {
 		
 	}
 	
-	public Class<?> getLibMainClass() {
+	public Class<?> getMainClass() {
 		
 		if (this.mainClass == null) {
 			
-			ClassLoader loader = this.getLibClassLoader();
+			ClassLoader loader = this.getClassLoader();
 			
 			InputStream stream = null;
 			
@@ -97,11 +97,11 @@ public enum Lib {
 		
 	}
 	
-	public Method getLibMainMethod() {
+	public Method getMainMethod() {
 		
 		if (this.mainMethod == null) {
 			
-			Class<?> mainClass = this.getLibMainClass();
+			Class<?> mainClass = this.getMainClass();
 			
 			try {
 				this.mainMethod = mainClass.getMethod("main", String[].class);
@@ -115,13 +115,13 @@ public enum Lib {
 		
 	}
 	
-	public long callLibMainMethod(String...args) {
+	public long callMainMethod(String...args) {
 		
-		Method method = this.getLibMainMethod();
+		Method method = this.getMainMethod();
 		
 		try {
 			long start = System.currentTimeMillis();
-			method.invoke(this.getLibMainClass(), (Object) args);
+			method.invoke(this.getMainClass(), (Object) args);
 			return System.currentTimeMillis() - start;
 		} catch (IllegalAccessException | InvocationTargetException e) {
 			throw new IllegalArgumentException("Failed to call lib " + this + " main method.", e);
@@ -129,8 +129,8 @@ public enum Lib {
 		
 	}
 	
-	public Thread callLibMainMethodThreaded(String...args) {
-		Thread th = new Thread(() -> this.callLibMainMethod(args));
+	public Thread callMainMethodThreaded(String...args) {
+		Thread th = new Thread(() -> this.callMainMethod(args));
 		th.start();
 		return th;
 	}
