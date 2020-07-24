@@ -12,9 +12,10 @@ import java.util.jar.Manifest;
 
 public enum Module {
 	
-	CFR ("cfr-0.146"),
+	CFR ("cfr-0.150"),
 	FERN_FLOWER ("fernflower"),
-	SPECIAL_SOURCE ("SpecialSource-1.8.6");
+	SPECIAL_SOURCE ("SpecialSource-1.8.6"),
+	JSR305 ("jsr305-3.0.1");
 	
 	private final String lib;
 	

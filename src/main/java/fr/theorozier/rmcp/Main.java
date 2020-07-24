@@ -248,6 +248,17 @@ public class Main {
 				
 			}
 			
+			try {
+				Path jsr305ModulePath = Module.JSR305.ensureExtracted();
+				Path jsr305JarPath = versionLibsPath.resolve(jsr305ModulePath.getFileName());
+				if (!Files.isRegularFile(jsr305JarPath)) {
+					Files.copy(jsr305ModulePath, jsr305JarPath);
+				}
+			} catch (IOException e) {
+				System.err.println("Failed to copy JSR305 lib.");
+				e.printStackTrace();
+			}
+			
 			System.out.println("Libraries downloaded.");
 			
 			if (!Files.isRegularFile(jvmArgsPath)) {
