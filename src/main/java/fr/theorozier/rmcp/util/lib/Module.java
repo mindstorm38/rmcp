@@ -15,6 +15,7 @@ public enum Module {
 	CFR ("cfr-0.150"),
 	FERN_FLOWER ("fernflower-44ae885"),
 	SPECIAL_SOURCE ("SpecialSource-1.8.6"),
+	PROCYON ("procyon-decompiler-0.5.36"),
 	JSR305 ("jsr305-3.0.1");
 	
 	private final String lib;

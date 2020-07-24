@@ -4,10 +4,7 @@ import fr.theorozier.rmcp.chain.*;
 import fr.theorozier.rmcp.chain.custom.DecompilerInputAction;
 import fr.theorozier.rmcp.chain.custom.GameSideInputAction;
 import fr.theorozier.rmcp.chain.custom.VersionInputAction;
-import fr.theorozier.rmcp.decompiler.CfrDecompiler;
-import fr.theorozier.rmcp.decompiler.Decompiler;
-import fr.theorozier.rmcp.decompiler.FernFlowerDecompiler;
-import fr.theorozier.rmcp.decompiler.ProguardToTsrgMapping;
+import fr.theorozier.rmcp.decompiler.*;
 import fr.theorozier.rmcp.mcapi.GameSide;
 import fr.theorozier.rmcp.mcapi.VersionListManifest;
 import fr.theorozier.rmcp.mcapi.VersionManifest;
@@ -22,8 +19,11 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class Main {
 	
@@ -51,7 +51,8 @@ public class Main {
 				.append(new AssertAction(Main::validateJavaVersion, "Java 8 minimum required."))
 				.append(new DecompilerInputAction("Choose a decompiler, CFR or FernFlower", settings.putRef(Setting.DECOMPILER))
 						.decompiler("cfr", CfrDecompiler::new)
-						.decompiler("ff", FernFlowerDecompiler::new))
+						.decompiler("ff", FernFlowerDecompiler::new)
+						.decompiler("procyon", ProcyonDecompiler::new))
 				.append(() -> loadManifest(settings))
 				.append(new VersionInputAction("Version" , settings.putRef(Setting.VERSION), settings.getCastRef(Setting.VERSION_LIST_MANIFEST)))
 				.append(() -> validateVersion(settings))
@@ -60,7 +61,7 @@ public class Main {
 				.append(new YesNoInputAction("Setup a project", null, true))
 				.append(new SwitchAction()
 						.cas(true, new ActionChain()
-								.append(new StringInputAction("Enter a suffix for your project directory", settings.putRef(Setting.PROJECT), false))
+								.append(new StringInputAction("Enter your project name", settings.putRef(Setting.PROJECT), false))
 								.append(() -> validateProject(settings))
 								.append(() -> decompile(settings))
 						)
@@ -218,15 +219,15 @@ public class Main {
 			}
 			
 			System.out.println("Downloading libraries ...");
-			StringBuilder classPathBuilder = new StringBuilder();
+			List<Path> classPaths = new ArrayList<>();
+			settings.put(Setting.SIDE_CLASS_PATHS, classPaths);
 			
 			for (VersionManifest.Library lib : manifest.getLibraries()) {
 				
 				Path libPath = versionLibsPath.resolve(lib.getFilename());
 				
 				if (!lib.hasNatives()) {
-					classPathBuilder.append(libPath.toAbsolutePath().toString());
-					classPathBuilder.append(';');
+					classPaths.add(libPath.toAbsolutePath());
 				}
 				
 				if (downloadIfNotExists(libPath, false, lib.getUrl()) && lib.hasNatives()) {
@@ -267,7 +268,7 @@ public class Main {
 				
 				try (BufferedWriter writer = Files.newBufferedWriter(jvmArgsPath)) {
 					writer.write("-classpath ");
-					writer.write(classPathBuilder.toString());
+					writer.write(classPaths.stream().map(Path::toString).collect(Collectors.joining(";")));
 					writer.write(" -Djava.library.path=");
 					writer.write(versionNativesPath.toAbsolutePath().toString());
 				} catch (IOException e) {
@@ -347,6 +348,7 @@ public class Main {
 		
 		Path remappedJarPath = settings.getCast(Setting.SIDE_REMAPPED_JAR_PATH);
 		Path projectPath = settings.getCast(Setting.PROJECT_PATH);
+		List<Path> classPaths = settings.getCast(Setting.SIDE_CLASS_PATHS);
 		
 		Path projectSrcPath = projectPath.resolve(PROJECT_DIR_SRC);
 		
@@ -363,7 +365,7 @@ public class Main {
 		}
 		
 		System.out.println("==== DECOMPILING USING " + decompiler.name() + " ====");
-		long time = decompiler.decompile(remappedJarPath, projectSrcPath);
+		long time = decompiler.decompile(remappedJarPath.toAbsolutePath(), projectSrcPath.toAbsolutePath(), classPaths);
 		System.out.printf("Decompiled in '%s' in %.1fs\n", projectSrcPath.toString(), (time / 1000.0));
 		
 		return true;
@@ -381,6 +383,7 @@ public class Main {
 		SIDE_MAPPINGS_PATH,
 		SIDE_TSRG_MAPPINGS_PATH,
 		SIDE_REMAPPED_JAR_PATH,
+		SIDE_CLASS_PATHS,
 		PROJECT,
 		PROJECT_PATH
 	}
