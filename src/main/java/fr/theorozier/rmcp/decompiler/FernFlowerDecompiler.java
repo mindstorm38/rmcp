@@ -19,11 +19,12 @@ public class FernFlowerDecompiler implements Decompiler {
 		
 		long time = Module.FERN_FLOWER.callMainMethod(
 				"-hed=0",
-				"-hdc=0",
-				"-dgs=1",
-				"-ren=1",
-				"-lit=1",
-				"-asc=1",
+				"-hdc=0",   // Not hide empty default constructor
+				"-dgs=1",   // Decompile generic signature
+				"-ren=1",   // Rename ambiguous names
+				"-lit=1",   // Output numeric literals "as-is"
+				"-asc=1",   // Encode non-ASCII characters in string and character literals as Unicode escapes
+				"-nls=1",   // New line character '\n'
 				"-log=WARN",
 				from.toAbsolutePath().toString(),
 				to.toAbsolutePath().toString()

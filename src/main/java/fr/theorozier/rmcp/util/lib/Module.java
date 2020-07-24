@@ -13,7 +13,7 @@ import java.util.jar.Manifest;
 public enum Module {
 	
 	CFR ("cfr-0.150"),
-	FERN_FLOWER ("fernflower"),
+	FERN_FLOWER ("fernflower-44ae885"),
 	SPECIAL_SOURCE ("SpecialSource-1.8.6"),
 	JSR305 ("jsr305-3.0.1");
 	
